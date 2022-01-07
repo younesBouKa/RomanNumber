@@ -1,0 +1,403 @@
+	public CreateCustomerOrderVAD_Type generate() throws TechnicalException, BusinessException {
+		CreateCustomerOrderVAD_Type createCustomerOrderVADRequest = new CreateCustomerOrderVAD_Type();
+		if (order.getPcmOrder() != null && order.getMobileOrder() != null) {
+			isPCMparLeWeb = order.getPcmOrder().isRequireVadCall(order.getMobileOrder().getActeGestionMobile());
+		}
+		Infolivraison infolivraison = generateInfolivraison();
+
+	}
+
+	private Infolivraison generateInfolivraison() {
+		Infolivraison infolivraison = new Infolivraison();
+
+		FacadeDeliveryAddress deliveryAddressPointRelais = null;
+		List<FacadeDeliveryAddress> listPointRelais = order.getPointRelais();
+		if (listPointRelais != null && listPointRelais.size() > 0) {
+			deliveryAddressPointRelais = listPointRelais.get(0);
+		}
+
+		String adresseliv1 = null;
+		String adresseliv2 = null;
+		String adresseliv3 = null;
+		String adresseliv4 = null;
+		String cpliv = null;
+		String villeliv = null;
+		String modeliv = null;
+		String codepmr = null;
+		Float fraislivht = null;
+		Float fraislivttc = null;
+
+		// QC5321, STORY 2590: BEGIN
+		FormattedTemporaryContactAddressConvertor deliveryAddressChronosoft = order
+				.findFormattedTemporaryAddress(FacadeTemporaryContactMethod.DELIVERY_CONTACT_METHOD_ID);
+
+		if (deliveryAddressChronosoft != null) {
+			boolean isCarteSimOnly = false;
+			for (MaterielOrder materiel : order.getMaterielOrders()) {
+				if (materiel.isCarteSim() && FacadeConstant.OPENCAT_DELIVERY_COLISSIMO_ADDRESS.equals(materiel.getModeRemise())) {
+					adresseliv1 = buldAdresseliv1(deliveryAddressChronosoft);
+					adresseliv2 = deliveryAddressChronosoft.getAddress4();
+					adresseliv3 = deliveryAddressChronosoft.getAddress3();
+					adresseliv4 = deliveryAddressChronosoft.getAddress2();
+					cpliv = deliveryAddressChronosoft.getPostalCode();
+					villeliv = deliveryAddressChronosoft.getCity();
+					modeliv = FacadeConstant.MODE_LIVRAISON_COLISSIMO;
+					isCarteSimOnly = true;
+					break;
+				}
+			}
+			// si les adresseliv ne sont pas remplis (modeliv est encore null et isCarteSimOnly reste à false)
+			// mode livraison est "Chronopost"
+			if (!isCarteSimOnly) {
+				adresseliv1 = buldAdresseliv1(deliveryAddressChronosoft);
+				adresseliv2 = deliveryAddressChronosoft.getAddress4();
+				adresseliv3 = deliveryAddressChronosoft.getAddress3();
+				adresseliv4 = deliveryAddressChronosoft.getAddress2();
+				cpliv = deliveryAddressChronosoft.getPostalCode();
+				villeliv = deliveryAddressChronosoft.getCity();
+				modeliv = FacadeConstant.MODE_LIVRAISON_CHRONOPOST;
+			}
+		} else if (deliveryAddressPointRelais != null) {
+			// modeliv = "Point Relais Altadis"
+			String addressId = deliveryAddressPointRelais.getAddressId();
+			if (!isPCMparLeWeb) {
+				String legacyDeliveryPointName = deliveryAddressPointRelais.getLegacyDeliveryPointName();
+				String legacyPostalCode = deliveryAddressPointRelais.getLegacyPostalCode();
+				String legacyCityName = deliveryAddressPointRelais.getLegacyCityName();
+				String legacyDeliveryAdresse1 = deliveryAddressPointRelais.getLegacyDeliveryAdresse1();
+				adresseliv1 = legacyDeliveryPointName;
+				adresseliv2 = legacyDeliveryAdresse1;
+				cpliv = legacyPostalCode;
+				villeliv = legacyCityName;
+			}
+			modeliv = FacadeConstant.MODE_LIVRAISON_POINT_RELAIS;
+			codepmr = addressId;
+		}
+
+		// QC5321, STORY 2590: END
+		MobileOrder mobileOrder = order.getMobileOrder();
+		if (mobileOrder != null) {
+			FraisLivraisonMobileOrder fraisLivraisonMobileOrder = mobileOrder.getFraisLivraisonMobileOrder();
+			if (fraisLivraisonMobileOrder != null) {
+				fraislivht = fraisLivraisonMobileOrder.getFraisLivHT();
+				fraislivttc = fraisLivraisonMobileOrder.getFraisLivTTC();
+			}
+		}
+
+		// FACADES-694 gestion du bloc infolivraison
+		boolean isSosh = false;
+		if (OrderUtil.isClassifExists(order, FacadeConstant.C_MARQUE_SOSH)) {
+			String externalId = order.getCustomerOrderExternalIDByCode(FacadeConstant.TRANSMITTER);
+			if (StringUtils.isNotBlank(externalId)) {
+				if (FacadeConstant.MYSHOP_SOSH.equals(externalId) || FacadeConstant.NEWSHOP_SOSH.equals(externalId))
+					isSosh = true;
+			}
+		}
+
+		/*
+		 * Fix bug FACADES-837 : [QUALIF][RCC][FASTOCH] Echec VAD causé par
+		 * absence <dateprevlivraison>
+		 *
+		 */
+		if (isSosh) {
+			Infofact infoFact = generateInfofact();
+			if (deliveryAddressPointRelais != null) {
+				infolivraison.setAdresseliv1(infoFact.getAdressefact1());
+				infolivraison.setAdresseliv2(infoFact.getAdressefact2());
+				infolivraison.setAdresseliv3(infoFact.getAdressefact3());
+				infolivraison.setAdresseliv4(infoFact.getAdressefact4());
+				infolivraison.setCpliv(infoFact.getCodepostfact());
+				infolivraison.setVilleliv(infoFact.getVillefact());
+				String addressId = deliveryAddressPointRelais.getAddressId();
+				modeliv = FacadeConstant.MODE_LIVRAISON_POINT_RELAIS;
+				codepmr = addressId;
+			} else {
+				infolivraison.setAdresseliv1(adresseliv1);
+				infolivraison.setAdresseliv2(adresseliv2);
+				infolivraison.setAdresseliv3(adresseliv3);
+				infolivraison.setAdresseliv4(adresseliv4);
+				infolivraison.setCpliv(cpliv);
+				infolivraison.setVilleliv(villeliv);
+			}
+			if (order.getLegacyOrderDelivery() != null) {
+				infolivraison.setDateprevlivraison(transformXMLGregorianCalendarToString(order.getLegacyOrderDelivery().getDeliveryDate()));
+			}
+
+		} else if (isPCMparLeWeb && deliveryAddressPointRelais != null) {
+			String addressId = deliveryAddressPointRelais.getAddressId();
+			PcmOrder pcmOrder = order.getPcmOrder();
+			infolivraison.setAdresseliv1(pcmOrder.getAdresse1Facturation());
+			infolivraison.setAdresseliv2(pcmOrder.getAdresse2Facturation());
+			infolivraison.setAdresseliv3(pcmOrder.getAdresse3Facturation());
+			infolivraison.setAdresseliv4(pcmOrder.getAdresse4Facturation());
+			infolivraison.setCpliv(pcmOrder.getCodePostalFacturation());
+			infolivraison.setVilleliv(pcmOrder.getVilleFacturation());
+
+			if (order.getLegacyOrderDelivery() != null) {
+				infolivraison.setDateprevlivraison(transformXMLGregorianCalendarToString(order.getLegacyOrderDelivery().getDeliveryDate()));
+			}
+			modeliv = FacadeConstant.MODE_LIVRAISON_POINT_RELAIS;
+			codepmr = addressId;
+		} else {
+			infolivraison.setAdresseliv1(adresseliv1);
+			infolivraison.setAdresseliv2(adresseliv2);
+			infolivraison.setAdresseliv3(adresseliv3);
+			infolivraison.setAdresseliv4(adresseliv4);
+			infolivraison.setCpliv(cpliv);
+			infolivraison.setVilleliv(villeliv);
+			if (isPCMparLeWeb && order.getLegacyOrderDelivery() != null) {
+				infolivraison.setDateprevlivraison(transformXMLGregorianCalendarToString(order.getLegacyOrderDelivery().getDeliveryDate()));
+			}
+		}
+		infolivraison.setModeliv(modeliv);
+		infolivraison.setCodepmr(codepmr);
+		infolivraison.setFraislivht(fraislivht);
+		infolivraison.setFraislivttc(fraislivttc);
+
+		// STORY 2440 BEGIN
+		FacadeTemporaryContactMethod phone = order.findTemporaryPhone(FacadeTemporaryContactMethod.CONTACTTEL_CONTACT_METHOD_ID);
+		if (phone != null && phone.getPhoneNumber() != null && phone.getPhoneNumber().size() > 0 && OrderUtil.getMobilePhoneNumber(phone) != null) {
+			infolivraison.setTelliv(OrderUtil.getMobilePhoneNumber(phone));
+		} else {
+			infolivraison.setTelliv(StringUtils.EMPTY);
+		}
+
+		/* Jira 2454 */
+		/* Vérifier si la commande est elligible à l'appel à eSimProfile */
+		if (facadeOrderHasCustOrdItemWithClassLabelAndComOperType(order, CatalogClassifications.C_O_MOBILE_ESIM, "add")) {
+			/*
+			 * FACADES-4103 : Refactor méthode generateInfolivraison() dans la
+			 * classe VadCommandeRequestGeneratorG11R6
+			 */
+			infolivraison = generateInfolivraisonForEsim(order, modeliv);
+		}
+
+		return infolivraison;
+	}
+
+	private Infolivraison generateInfolivraisonForEsim(FacadeOrder order, String modeliv) {
+
+		Infolivraison infolivraison = new Infolivraison();
+		String adresseliv1 = null;
+		TemporaryContactAddressConvertor adresseFacturation = null;
+		// rg1.1
+		adresseFacturation = order.findTemporaryAddress(FacadeTemporaryContactMethod.FACTURATION_CONTACT_METHOD_ID);
+		if (adresseFacturation != null) {
+			FacadeAddress address = adresseFacturation.getTemporaryContactAddress().getAddress();
+			String roadNumber = address.getGeographicalAndPostalAddress().getRoadNumber();
+			String roadLetter = address.getGeographicalAndPostalAddress().getRoadLetter();
+			String roadName = address.getGeographicalAndPostalAddress().getRoadName();
+			String roadType = address.getGeographicalAndPostalAddress().getRoadType();
+			if (roadNumber != null && !roadNumber.isEmpty()) {
+				adresseliv1 = roadNumber;
+			}
+			if (roadLetter != null && !roadLetter.isEmpty()) {
+				if (adresseliv1 != null) {
+					adresseliv1 = adresseliv1 + " " + roadLetter;
+				} else {
+					adresseliv1 = roadLetter;
+
+				}
+			}
+			if (roadType != null && !roadType.isEmpty()) {
+				if (adresseliv1 != null) {
+					adresseliv1 = adresseliv1 + " " + roadType;
+				} else {
+					adresseliv1 = roadType;
+
+				}
+			}
+			if (roadName != null && !roadName.isEmpty()) {
+				if (adresseliv1 != null) {
+					adresseliv1 = adresseliv1 + " " + roadName;
+				} else {
+					adresseliv1 = roadName;
+				}
+			}
+			String line3 = null, line4 = null;
+			if ((roadNumber == null || roadNumber.isEmpty()) && (roadLetter == null || roadLetter.isEmpty())
+					&& (roadName == null || roadName.isEmpty()) && (roadType == null || roadType.isEmpty())) {
+				List<FacadeAddressLine> adressLine = adresseFacturation.getTemporaryContactAddress().getAddress().getFacadeFormatedPostalAddress()
+						.getAddressLine();
+				for (FacadeAddressLine line : adressLine) {
+					if (line.getLineNumber() == ADRESSLIV3_IDX) {
+						line3 = line.getLine();
+					} else if (line.getLineNumber() == ADRESSLIV4_IDX) {
+						line4 = line.getLine();
+					}
+				}
+				if (line3 != null) {
+					adresseliv1 = line3;
+				} else {
+					adresseliv1 = line4;
+				}
+			}
+
+			infolivraison.setAdresseliv1(adresseliv1);
+			// rg1.2
+			infolivraison.setCpliv(adresseFacturation.getPostalCode());
+			// rg1.3
+			infolivraison.setVilleliv(adresseFacturation.getCity());
+			// rg1.4
+			infolivraison.setPaysliv(FacadeConstant.PAYS_LIV_FRANCE);
+			// RG 1.6
+			// FACADES-4257
+			// Pour une commande sans terminal, il ne doit pas y avoir d'offre "O_TERMINAL" 
+			// appartenant à la classification "C_OFFRE_TERMINAL"
+			if (!hasOffer_O_TERMINAL_With_classif_C_OFFRE_TERMINAL(order, FacadeConstant.C_OFFRE_TERMINAL)) {
+				infolivraison.setModeliv(FacadeConstant.MODE_LIVRAISON_DIGITAL);
+			} else {
+				infolivraison.setModeliv(modeliv);
+			}
+
+			// jira-4229
+			FacadeTemporaryContactMethod phone = order.findTemporaryPhone(FacadeTemporaryContactMethod.CONTACTTEL_CONTACT_METHOD_ID);
+			if (phone != null && phone.getPhoneNumber() != null && phone.getPhoneNumber().size() > 0
+					&& OrderUtil.getMobilePhoneNumber(phone) != null) {
+				infolivraison.setTelliv(OrderUtil.getMobilePhoneNumber(phone));
+			}
+			MobileOrder mobileOrder = order.getMobileOrder();
+			if (mobileOrder != null) {
+				FraisLivraisonMobileOrder fraisLivraisonMobileOrder = mobileOrder.getFraisLivraisonMobileOrder();
+				if (fraisLivraisonMobileOrder != null) {
+					infolivraison.setFraislivht(fraisLivraisonMobileOrder.getFraisLivHT());
+					infolivraison.setFraislivttc(fraisLivraisonMobileOrder.getFraisLivTTC());
+				}
+			}
+
+		}
+		return infolivraison;
+	}
+
+	/*
+	 * FACADES-4257: OMEGA - Acquisition carte eSim seule - Flux VAD -
+	 * Correction règle valorisation initiale champ "modeliv" NB: Une commande
+	 * sans terminal: il ne doit pas y avoir d'offre "O_TERMINAL" appartenant à
+	 * la classification "C_OFFRE_TERMINAL"
+	 */
+	public boolean hasOffer_O_TERMINAL_With_classif_C_OFFRE_TERMINAL(final FacadeOrder facadeOrder, final String classificationLabel) {
+		boolean found = false;
+		final CreateCustomerOrder customerOrder = facadeOrder.getSoaOrder();
+		final List<CustomerOrderItem> items = customerOrder.getCustomerOrderItem();
+		// Boucler à travers les CustomerOrderItem de la commande Facade
+		customerOrderItemForLoop: for (CustomerOrderItem item : items) {
+			final String offerSpecificationCode = item.getOfferSpecificationCode();
+			if (FacadeConstant.O_TERMINAL.equals(offerSpecificationCode)) {
+				try {
+					final List<String> listeClassificationsByOfferSoft = hibernateCache.findClassificationByOfferSoft(offerSpecificationCode);
+					for (final String classificationByOrderSoft : listeClassificationsByOfferSoft) {
+						if (classificationByOrderSoft.equals(classificationLabel)) {
+							found = true;
+							break customerOrderItemForLoop;
+						}
+					}
+				} catch (TranscoDonneeException tde) {
+					LOGGER.error(tde.getMessage());
+				}
+			}
+		}
+		return found;
+	}
+
+	public boolean facadeOrderHasCustOrdItemWithClassLabelAndComOperType(
+			final FacadeOrder facadeOrder,
+			final String classificationLabel,
+			final String commercialOperationType) {
+
+		boolean found = false;
+		if (FacadeApplicationContext.getApplicationContext() != null) {
+			final CreateCustomerOrder customerOrder = facadeOrder.getSoaOrder();
+			if (customerOrder != null) {
+				final List<CustomerOrderItem> items = customerOrder.getCustomerOrderItem();
+				// Boucler à travers les CustomerOrderItem de la commande Facade
+				customerOrderItemForLoop: for (CustomerOrderItem item : items) {
+					final String offerSpecificationCode = item.getOfferSpecificationCode();
+					try {
+						final List<String> listeClassificationsByOfferSoft = hibernateCache.findClassificationByOfferSoft(offerSpecificationCode);
+						for (final String classificationByOrderSoft : listeClassificationsByOfferSoft) {
+							if (classificationByOrderSoft.equals(classificationLabel)
+									&& item.getCommercialOperationType().equalsIgnoreCase(commercialOperationType)) {
+								found = true;
+								break customerOrderItemForLoop;
+							}
+						}
+					} catch (TranscoDonneeException tde) {
+						LOGGER.error(tde.getMessage());
+					}
+				}
+			}
+		} // fin for
+		return found;
+
+	} // fin méthode
+
+	private Complementesim generateComplementEsim(FacadeOrder order) {
+
+		Complementesim complementEsim = new Complementesim();
+
+		/*
+		 * Réccupération des données esimProfile à partir de
+		 * rejeu_commande_completion
+		 */
+		if (FacadeApplicationContext.getApplicationContext() != null) {
+			orderCompletionManager = FacadeApplicationContext.getApplicationContext().getBean(OrderCompletionManager.class);
+			if (orderCompletionManager != null) {
+				Map<String, OrderCompletionDto> orderCompletionMap = orderCompletionManager.findDtoCompletionList(order.getInternalId());
+
+				if (orderCompletionMap != null) {
+					String nsce = OrderUtil.getValueFromCompletionMap(orderCompletionMap, ESimConstant.NSCE);
+					String puk1 = OrderUtil.getValueFromCompletionMap(orderCompletionMap, ESimConstant.PUK1);
+					String confirmDate = OrderUtil.getValueFromCompletionMap(orderCompletionMap, ESimConstant.CONFIRMATION_CODE);
+					String activateDate = OrderUtil.getValueFromCompletionMap(orderCompletionMap, ESimConstant.ACTIVATION_CODE);
+
+					if (nsce != null && !nsce.isEmpty()) {
+						JAXBElement<String> element = new JAXBElement<>(new QName("NSCE"), String.class, nsce);
+						complementEsim.setNSCE(element);
+					}
+					if (activateDate != null && !activateDate.isEmpty()) {
+						complementEsim.setCodeActivation(activateDate);
+					}
+					if (confirmDate != null && !confirmDate.isEmpty()) {
+						complementEsim.setCodeConfirmation(confirmDate);
+					}
+					if (puk1 != null && !puk1.isEmpty()) {
+						complementEsim.setCodePUK(puk1);
+					}
+				}
+			}
+		}
+		return complementEsim;
+
+	}
+
+	private String transformXMLGregorianCalendarToString(XMLGregorianCalendar xmlGregorianCalendar) {
+		if (xmlGregorianCalendar == null) {
+			return null;
+		}
+		GregorianCalendar calendar = xmlGregorianCalendar.toGregorianCalendar();
+		SimpleDateFormat sdf = new SimpleDateFormat("ddMMyyyy");
+		return sdf.format(calendar.getTime());
+	}
+
+	private String buldAdresseliv1(FormattedTemporaryContactAddressConvertor deliveryAddressChronosoft) {
+		String adresseliv1 = null;
+		adresseliv1 = formatedStreetAddressVad(deliveryAddressChronosoft);
+
+		if (adresseliv1.trim().equals("")) {
+			List<FacadeAddressLine> adressLine = deliveryAddressChronosoft.getTemporaryContactAddress().getAddress().getFacadeFormatedPostalAddress()
+					.getAddressLine();
+			for (FacadeAddressLine line : adressLine) {
+
+				if (line.getLineNumber() == ADRESSLIV2_IDX) {
+					adresseliv1 = line.getLine();
+				} else if (line.getLineNumber() == ADRESSLIV3_IDX) {
+					adresseliv1 = line.getLine();
+					break;
+				} else if (line.getLineNumber() == ADRESSLIV4_IDX) {
+					adresseliv1 = line.getLine();
+				}
+			}
+		}
+
+		return adresseliv1;
+	}

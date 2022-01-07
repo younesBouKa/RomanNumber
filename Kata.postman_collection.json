@@ -1,0 +1,47 @@
+{
+	"info": {
+		"_postman_id": "944c9660-53e1-403d-b7e0-2aca7b7e2a81",
+		"name": "Kata",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "GET ArabicToRoman",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/ArabicToRoman",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"ArabicToRoman"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET RomanToArabic",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/RomanToArabic",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"RomanToArabic"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
