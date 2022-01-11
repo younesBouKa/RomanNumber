@@ -6,7 +6,14 @@ Il possède 2 controlleur :
 	- ArabicToRomanConversionController
 	- RomanToArabicConversionController
 	
-Le principe est de mettre en place l'un ou l'autre des convertisseurs avec les tests associés.
+Le principe est de mettre en place l'un ou l'autre des convertisseurs **avec les tests associés**.
+
+Les critères d'évaluations sont :
+- qualité de code (refactor, bonne pratique de code)
+- la couverture de test
+- l'aglorithme fini ou non (du moment que certain test fonctionne)
+
+# A la fin du temps impartie (entre 45 minutes et 1h), il faut avoir fait les tests pour les chiffres de 1 à 20 et l'algorithme qui va avec pour un seul des deux controllers.
 
 Petit rappel sur les chiffre romain :
 
