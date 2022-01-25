@@ -13,7 +13,9 @@ Les critères d'évaluations sont :
 - la couverture de test
 - l'aglorithme fini ou non (du moment que certain test fonctionne)
 
-# A la fin du temps impartie (entre 45 minutes et 1h), il faut avoir fait les tests pour les chiffres de 1 à 20 et l'algorithme qui va avec pour un seul des deux controllers.
+# A la fin du temps impartie (entre 45 minutes et 1h), il faut avoir fait les tests pour les chiffres de 1 à 20 et l'algorithme qui va avec pour le controller ArabicToRomanConversionController.
+
+2 type de tests sont présent : TU et test d'intégration
 
 Petit rappel sur les chiffre romain :
 
