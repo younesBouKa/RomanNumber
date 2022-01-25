@@ -6,7 +6,7 @@ Il possède 2 controlleur :
 	- ArabicToRomanConversionController
 	- RomanToArabicConversionController
 	
-Le principe est de mettre en place l'un ou l'autre des convertisseurs **avec les tests associés**.
+Le principe est de mettre en place le convertisseur **ArabicToRomanConversionController avec les tests associés**.
 
 Les critères d'évaluations sont :
 - qualité de code (refactor, bonne pratique de code)
