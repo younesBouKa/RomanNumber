@@ -13,10 +13,11 @@ public class ArabicToRomanConversionController {
 
 	@GetMapping(value = "/ArabicToRoman")
 	public ResponseEntity<RomanConversionResponse> getRomanConversion(@RequestParam(required = true) String valueToConvert){
-		
-		
-		
-		return new ResponseEntity<>(new RomanConversionResponse(), HttpStatus.OK);
-	}
+		RomanConversionResponse conversionResponse = new RomanConversionResponse();
+		conversionResponse.setValueToConvert(String.valueOf(valueToConvert));
+		if (valueToConvert == 1) {
+			conversionResponse.setResponse("I");
+		}
+		return new ResponseEntity<>(conversionResponse, HttpStatus.OK);
 	
 }

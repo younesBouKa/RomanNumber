@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.*;
-import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.*;
 import org.springframework.http.ResponseEntity;
 
@@ -17,17 +15,30 @@ class ArabicToRomanConversionControllerTest {
 
 	@InjectMocks
 	ArabicToRomanConversionController controller;
-	
+
 	@Test
-	void testGetRomanConversion() throws Exception {
+	void testGetRomanConversion_convert_1_to_I() throws Exception {
 		//setup
-		String valueToConvert = null;
-		
+		Integer valueToConvert = 1;
+
 		//Test
 		ResponseEntity<RomanConversionResponse> romanConversion = controller.getRomanConversion(valueToConvert);
-		
+
 		//Assert
-		assertThat(romanConversion.getStatusCodeValue()).isEqualTo(200);
+		assertThat(romanConversion.getBody().getValueToConvert()).isEqualTo("1");
+		assertThat(romanConversion.getBody().getResponse()).isEqualTo("I");
+	}
+
+	//@Test
+	void testGetRomanConversion_test_null_value() throws Exception {
+		//setup
+		Integer valueToConvert = null;
+
+		//Test
+		ResponseEntity<RomanConversionResponse> romanConversion = controller.getRomanConversion(valueToConvert);
+
+		//Assert
+		assertThat(romanConversion.getStatusCodeValue()).isEqualTo(404);
 		assertThat(romanConversion.getBody()).isNotNull();
 		assertThat(romanConversion.getBody().getValueToConvert()).isNullOrEmpty();
 		assertThat(romanConversion.getBody().getResponse()).isNullOrEmpty();
