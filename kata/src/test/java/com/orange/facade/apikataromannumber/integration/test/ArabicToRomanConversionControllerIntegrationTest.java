@@ -32,7 +32,7 @@ class ArabicToRomanConversionControllerIntegrationTest extends AbstractIntegrati
 				.andExpect(jsonPath("$.response").value("I"));
 	}
 
-	//@Test
+	@Test
 	void ArabicToRoman_convert_without_value() throws Exception {
 		//Setup
 
